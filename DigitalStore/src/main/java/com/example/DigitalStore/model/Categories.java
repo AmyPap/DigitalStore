@@ -1,5 +1,4 @@
-package com.example.demo.model;
-
+package com.example.DigitalStore.model;
 import jakarta.persistence.*;
 
 @Entity
