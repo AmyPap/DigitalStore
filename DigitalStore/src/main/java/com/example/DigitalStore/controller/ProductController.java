@@ -1,7 +1,7 @@
-package com.example.demo.controller;
+package com.example.DigitalStore.controller;
 
-import com.example.demo.model.Products;
-import com.example.demo.repository.ProductsRepository;
+import com.example.DigitalStore.model.Products;
+import com.example.DigitalStore.repository.ProductsRepository;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 
