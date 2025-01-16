@@ -3,6 +3,7 @@ package com.example.DigitalStore.controller;
 import com.example.DigitalStore.model.Products;
 import com.example.DigitalStore.repository.ProductsRepository;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ResponseEntity;
 
 import java.util.List;
 
@@ -22,5 +23,10 @@ public class ProductController {
     public List<Products> getAllProducts() {
         return productsRepository.findAll();
     }
-
+    // GET return productOptions baserat på code
+    @GetMapping("/{productCode}")
+    public ResponseEntity<?> getOptionsForProduct(@PathVariable String productCode) {
+        Products productC = productsRepository.findByProductCode(productCode);
+        return ResponseEntity.ok(productC.getProductOptions());
+    }
 }
