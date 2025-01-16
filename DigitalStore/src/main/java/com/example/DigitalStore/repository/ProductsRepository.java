@@ -9,7 +9,6 @@ import java.util.List;
 @Repository
 public interface ProductsRepository extends JpaRepository<Products, Long> {
 
-
     Products findByProductCode(String productCode);
 
     boolean existsByProductCode(String productCode);

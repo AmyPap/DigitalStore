@@ -1,11 +1,13 @@
 package com.example.DigitalStore.controller;
 
+import com.example.DigitalStore.DTO.NameAndPrice;
 import com.example.DigitalStore.model.Products;
 import com.example.DigitalStore.repository.ProductsRepository;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,26 +28,53 @@ public class ProductController {
         return productsRepository.findAll();
     }
 
-    // GET return productOptions based on code
+    // GET return productOptions baserat på code
     @GetMapping("/{productCode}")
     public ResponseEntity<?> getOptionsForProduct(@PathVariable String productCode) {
         Products productC = productsRepository.findByProductCode(productCode);
         return ResponseEntity.ok(productC.getProductOptions());
     }
 
-    // DELETE - Remove a product by ID
+    @GetMapping("/filter")
+    public List<Products> Filter(@RequestParam(value = "Max Price", required = false) Double maxPrice) throws IOException {
+        if (maxPrice == null) {
+            return productsRepository.findAll();
+        }
+        if (maxPrice <= 0.0) {
+            throw new IllegalArgumentException("Price can't not zero or lower.");
+        }
+
+        return productsRepository.findAll().stream()
+                .filter(product -> product.getPrice() <= maxPrice)
+                .toList();
+    }
+
+    @GetMapping("/name-price")
+    public List<NameAndPrice> NameAndPrice() {
+        return productsRepository.findAll().stream()
+                .map(product -> new NameAndPrice(product.getProductName(), product.getPrice()))
+                .toList();
+    }
+
+
+    // DELETE - Ta bort en produkt baserat på ID
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
+        // Kontrollera om produkten finns
         if (!productsRepository.existsById(id)) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build(); // Return 404 if product does not exist
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build(); // Returnera 404 om produkten inte finns
         }
 
         try {
+            // Hämta produkten för att säkerställa korrekt hantering av relaterade data
             Products product = productsRepository.findById(id).orElseThrow();
-            productsRepository.delete(product); // Delete the product (related ProductOptions removed due to CascadeType.ALL)
-            return ResponseEntity.noContent().build(); // Return 204 on success
+
+            // Radera produkten (relaterade ProductOptions tas bort p.g.a. CascadeType.ALL)
+            productsRepository.delete(product);
+
+            return ResponseEntity.noContent().build(); // Returnera 204 vid lyckad radering
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // Return 500 on error
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // Returnera 500 vid fel
         }
     }
 
