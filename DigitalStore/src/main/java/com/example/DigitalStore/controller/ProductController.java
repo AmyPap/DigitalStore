@@ -6,7 +6,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/products")
@@ -31,6 +33,7 @@ public class ProductController {
         return ResponseEntity.ok(productC.getProductOptions());
     }
 
+
     // DELETE - Ta bort en produkt baserat på ID
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
@@ -50,5 +53,60 @@ public class ProductController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // Returnera 500 vid fel
         }
+
+// PUT: Update an existing product with validation
+    @PutMapping("/{id}")
+    public Products updateProduct(@PathVariable Long id, @RequestBody Products updatedProduct) {
+    // Kontrollera om produkten finns i databasen
+        return productsRepository.findById(id)
+            .map(existingProduct -> {
+                // Validera inkommande data
+                if (updatedProduct.getProductCode() == null || updatedProduct.getProductCode().isBlank()) {
+                    throw new IllegalArgumentException("Product code cannot be null or blank.");
+                }
+                if (updatedProduct.getPrice() == null || updatedProduct.getPrice() <= 0) {
+                    throw new IllegalArgumentException("Price must be greater than 0.");
+                }
+                if (updatedProduct.getProductName() == null || updatedProduct.getProductName().isBlank()) {
+                    throw new IllegalArgumentException("Product name cannot be null or blank.");
+                }
+
+                // Uppdatera produktens egenskaper
+                var productCode = updatedProduct.getProductCode();
+                var productName = updatedProduct.getProductName();
+                var description = updatedProduct.getDescription();
+                var price = updatedProduct.getPrice();
+
+
+                existingProduct.setProductCode(productCode);
+                existingProduct.setProductName(productName);
+                existingProduct.setDescription(description);
+                existingProduct.setPrice(price);
+
+                // Spara den uppdaterade produkten
+                return productsRepository.save(existingProduct);
+            })
+            .orElseThrow(() -> new RuntimeException("Product with ID " + id + " not found!"));
+}
+
+// Global exception handler för att hantera valideringsfel
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Map<String, String> handleValidationExceptions(IllegalArgumentException ex) {
+        Map<String, String> errors = new HashMap<>();
+        errors.put("error", ex.getMessage());
+        return errors;
+    }
+
+// Global exception handler för andra fel, t.ex. om produkten inte finns
+    @ExceptionHandler(RuntimeException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Map<String, String> handleRuntimeException(RuntimeException ex) {
+        Map<String, String> errors = new HashMap<>();
+        errors.put("error", ex.getMessage());
+        return errors;
+ main
     }
 }
+
+
