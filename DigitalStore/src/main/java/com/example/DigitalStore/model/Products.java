@@ -1,10 +1,14 @@
 package com.example.DigitalStore.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import java.util.List;
 
 @Entity
-@Table(name = "Products")
+@Table(name = "products")
 public class Products {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -21,11 +25,10 @@ public class Products {
     @Column(name = "price", nullable = false)
     private Double price;
 
-    @Column(name = "brand_id", nullable = false)
-    private Integer brandId;
-
-    @Column(name = "category_id", nullable = false)
-    private Integer categoryId;
+    @OneToMany(mappedBy = "productId", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    @JsonIgnore
+    private List<ProductOptions> productOptions;
 
     // Getters and Setters
     public Long getId() {
@@ -63,25 +66,14 @@ public class Products {
     public Double getPrice() {
         return price;
     }
-
     public void setPrice(Double price) {
         this.price = price;
     }
-
-    public Integer getBrandId() {
-        return brandId;
+    public List<ProductOptions> getProductOptions() {
+        return productOptions;
     }
-
-    public void setBrandId(Integer brandId) {
-        this.brandId = brandId;
-    }
-
-    public Integer getCategoryId() {
-        return categoryId;
-    }
-
-    public void setCategoryId(Integer categoryId) {
-        this.categoryId = categoryId;
+    public void setProductOptions(List<ProductOptions> productOptions) {
+        this.productOptions = productOptions;
     }
 }
 
