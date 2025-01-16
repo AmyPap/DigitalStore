@@ -4,12 +4,15 @@
 
 API for a digital store like "Intersport". 
 
-Technologies:
+### Technologies:
  - Java
- - Mariadb (dependency: SpringDoc OpenAPI)
+ - Spring Boot
+ - Mariadb database
  - Swagger
+ - JPA
+ - Maven
 
-## User Stories
+### User Stories
  - As a seller I want to add products
  - As a seller I want to delete products
  - As a seller I want to update stock
