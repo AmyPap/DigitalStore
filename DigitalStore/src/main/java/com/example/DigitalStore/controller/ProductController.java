@@ -26,70 +26,71 @@ public class ProductController {
         return productsRepository.findAll();
     }
 
-    // GET return productOptions baserat på code
+    // GET return productOptions based on code
     @GetMapping("/{productCode}")
     public ResponseEntity<?> getOptionsForProduct(@PathVariable String productCode) {
         Products productC = productsRepository.findByProductCode(productCode);
         return ResponseEntity.ok(productC.getProductOptions());
     }
 
-
-    // DELETE - Ta bort en produkt baserat på ID
+    // DELETE - Remove a product by ID
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
-        // Kontrollera om produkten finns
         if (!productsRepository.existsById(id)) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build(); // Returnera 404 om produkten inte finns
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build(); // Return 404 if product does not exist
         }
 
         try {
-            // Hämta produkten för att säkerställa korrekt hantering av relaterade data
             Products product = productsRepository.findById(id).orElseThrow();
-
-            // Radera produkten (relaterade ProductOptions tas bort p.g.a. CascadeType.ALL)
-            productsRepository.delete(product);
-
-            return ResponseEntity.noContent().build(); // Returnera 204 vid lyckad radering
+            productsRepository.delete(product); // Delete the product (related ProductOptions removed due to CascadeType.ALL)
+            return ResponseEntity.noContent().build(); // Return 204 on success
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // Returnera 500 vid fel
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build(); // Return 500 on error
+        }
+    }
+
+    // PUT: Update an existing product with validation
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateProduct(@PathVariable Long id, @RequestBody Products updatedProduct) {
+        // Check if the product exists in the database
+        Products existingProduct = productsRepository.findById(id).orElse(null);
+
+        if (existingProduct == null) {
+            // If product not found, return 404 Not Found
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Product not found.");
         }
 
-// PUT: Update an existing product with validation
-    @PutMapping("/{id}")
-    public Products updateProduct(@PathVariable Long id, @RequestBody Products updatedProduct) {
-    // Kontrollera om produkten finns i databasen
-        return productsRepository.findById(id)
-            .map(existingProduct -> {
-                // Validera inkommande data
-                if (updatedProduct.getProductCode() == null || updatedProduct.getProductCode().isBlank()) {
-                    throw new IllegalArgumentException("Product code cannot be null or blank.");
-                }
-                if (updatedProduct.getPrice() == null || updatedProduct.getPrice() <= 0) {
-                    throw new IllegalArgumentException("Price must be greater than 0.");
-                }
-                if (updatedProduct.getProductName() == null || updatedProduct.getProductName().isBlank()) {
-                    throw new IllegalArgumentException("Product name cannot be null or blank.");
-                }
+        // Check for validation on the incoming data
+        if (updatedProduct.getProductCode() == null || updatedProduct.getProductCode().isBlank()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Product code cannot be null or blank.");
+        }
+        if (updatedProduct.getPrice() == null || updatedProduct.getPrice() <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Price must be greater than 0.");
+        }
+        if (updatedProduct.getProductName() == null || updatedProduct.getProductName().isBlank()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Product name cannot be null or blank.");
+        }
 
-                // Uppdatera produktens egenskaper
-                var productCode = updatedProduct.getProductCode();
-                var productName = updatedProduct.getProductName();
-                var description = updatedProduct.getDescription();
-                var price = updatedProduct.getPrice();
+        // Check for duplicate productCode
+        if (!existingProduct.getProductCode().equals(updatedProduct.getProductCode()) &&
+                productsRepository.existsByProductCode(updatedProduct.getProductCode())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Product code already exists.");
+        }
 
+        // Update the product fields
+        existingProduct.setProductCode(updatedProduct.getProductCode());
+        existingProduct.setProductName(updatedProduct.getProductName());
+        existingProduct.setDescription(updatedProduct.getDescription());
+        existingProduct.setPrice(updatedProduct.getPrice());
 
-                existingProduct.setProductCode(productCode);
-                existingProduct.setProductName(productName);
-                existingProduct.setDescription(description);
-                existingProduct.setPrice(price);
+        // Save the updated product
+        productsRepository.save(existingProduct);
 
-                // Spara den uppdaterade produkten
-                return productsRepository.save(existingProduct);
-            })
-            .orElseThrow(() -> new RuntimeException("Product with ID " + id + " not found!"));
-}
+        // Return the updated product with status 200 OK
+        return ResponseEntity.ok(existingProduct);
+    }
 
-// Global exception handler för att hantera valideringsfel
+    // Global exception handler for validation errors
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, String> handleValidationExceptions(IllegalArgumentException ex) {
@@ -98,14 +99,13 @@ public class ProductController {
         return errors;
     }
 
-// Global exception handler för andra fel, t.ex. om produkten inte finns
+    // Global exception handler for other errors, e.g. if the product does not exist
     @ExceptionHandler(RuntimeException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public Map<String, String> handleRuntimeException(RuntimeException ex) {
         Map<String, String> errors = new HashMap<>();
         errors.put("error", ex.getMessage());
         return errors;
- main
     }
 }
 
