@@ -45,7 +45,7 @@ public class ProductOptions {
     public Sizes getSize() {
         return size;
     }
-    public void setSizes(Sizes size) {
+    public void setSize(Sizes size) {
         this.size = size;
     }
     public Colors getColor() {
