@@ -53,6 +53,10 @@ public class ProductController {
     @GetMapping("/{productCode}")
     public ResponseEntity<?> getOptionsForProduct(@PathVariable String productCode) {
         Products productC = productsRepository.findByProductCode(productCode);
+        if (productC == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Product with code '" + productCode + "' not found.");
+        }
         return ResponseEntity.ok(productC.getProductOptions());
     }
 
@@ -218,6 +222,102 @@ public class ProductController {
         productsRepository.save(existingProduct);
         return ResponseEntity.ok(existingProduct);
     }
+
+    @PostMapping
+    public ResponseEntity<?> createProduct(@RequestBody ProductsUpdateDTO newProductDTO) {
+        // Validation for productCode
+        if (newProductDTO.getProductCode() == null || newProductDTO.getProductCode().isBlank()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Product code is required and cannot be blank.");
+            }
+        if (productsRepository.existsByProductCode(newProductDTO.getProductCode())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Product code already exists.");
+            }
+
+        // Validation for productName
+        if (newProductDTO.getProductName() == null || newProductDTO.getProductName().isBlank()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Product name is required and cannot be blank.");
+            }
+
+        // Validation for price
+        if (newProductDTO.getPrice() == null || newProductDTO.getPrice() <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Price must be greater than 0.");
+            }
+
+        // Create a new product
+        Products productToSave = new Products();
+        productToSave.setProductCode(newProductDTO.getProductCode());
+        productToSave.setProductName(newProductDTO.getProductName());
+        productToSave.setDescription(newProductDTO.getDescription());
+        productToSave.setPrice(newProductDTO.getPrice());
+
+        // Connection with Categories
+        if (newProductDTO.getCategoryId() != null) {
+            Categories category = categoriesRepository.findById(newProductDTO.getCategoryId())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Invalid Category ID: " + newProductDTO.getCategoryId()));
+            productToSave.setCategoryId(category);
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Category ID is required.");
+        }
+
+        // Connection with Brands
+        if (newProductDTO.getBrandId() != null) {
+            Brands brand = brandsRepository.findById(newProductDTO.getBrandId())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Invalid Brand ID: " + newProductDTO.getBrandId()));
+            productToSave.setBrandId(brand);
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Brand ID is required.");
+        }
+
+        // Managing ProductOptions
+        if (newProductDTO.getProductOptions() != null) {
+            for (ProductOptionsDTO newOptionDTO : newProductDTO.getProductOptions()) {
+                // Validate that the ID is null or 0 (new ProductOption)
+                if (newOptionDTO.getId() != null && newOptionDTO.getId() > 0) {
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                            .body("ProductOption ID must be 0 or null when creating a new product.");
+                }
+                // Create a new ProductOption
+                ProductOptions newProductOption = new ProductOptions();
+                newProductOption.setProductId(productToSave);
+
+                // Add the size by sizeId
+                if (newOptionDTO.getSizeId() != null) {
+                    Sizes size = sizesRepository.findById(newOptionDTO.getSizeId())
+                            .orElseThrow(() -> new IllegalArgumentException(
+                                    "Invalid Size ID: " + newOptionDTO.getSizeId()));
+                    newProductOption.setSize(size);
+                }
+                // Add the color by colorId
+                if (newOptionDTO.getColorId() != null) {
+                    Colors color = colorsRepository.findById(newOptionDTO.getColorId())
+                            .orElseThrow(() -> new IllegalArgumentException(
+                                    "Invalid Color ID: " + newOptionDTO.getColorId()));
+                    newProductOption.setColor(color);
+                }
+                // Setting stock quantity
+                if (newOptionDTO.getStockQuantity() == null || newOptionDTO.getStockQuantity() < 0) {
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                            .body("Stock quantity must be greater than or equal to 0.");
+                }
+                newProductOption.setStockQuantity(newOptionDTO.getStockQuantity());
+
+                productToSave.getProductOptions().add(newProductOption);
+            }
+        }
+
+        // Save the product and its options
+        Products savedProduct = productsRepository.save(productToSave);
+        return ResponseEntity.status(HttpStatus.CREATED).body(savedProduct);
+    }
+
     // Global exception handler for validation errors
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
