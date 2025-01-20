@@ -1,9 +1,16 @@
 package com.example.DigitalStore.controller;
 
 import com.example.DigitalStore.DTO.NameAndPrice;
+import com.example.DigitalStore.DTO.ProductOptionsDTO;
 import com.example.DigitalStore.DTO.ProductsDTO;
+import com.example.DigitalStore.DTO.ProductsUpdateDTO;
+import com.example.DigitalStore.model.Colors;
+import com.example.DigitalStore.model.ProductOptions;
 import com.example.DigitalStore.model.Products;
+import com.example.DigitalStore.model.Sizes;
 import com.example.DigitalStore.repository.ProductsRepository;
+import com.example.DigitalStore.repository.ColorsRepository;
+import com.example.DigitalStore.repository.SizesRepository;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
@@ -12,15 +19,20 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/products")
 public class ProductController {
 
     private final ProductsRepository productsRepository;
+    private final SizesRepository sizesRepository;
+    private final ColorsRepository colorsRepository;
 
-    public ProductController(ProductsRepository productsRepository) {
+    public ProductController(ProductsRepository productsRepository, SizesRepository sizesRepository,ColorsRepository colorsRepository) {
         this.productsRepository = productsRepository;
+        this.sizesRepository = sizesRepository;
+        this.colorsRepository = colorsRepository;
     }
 
     // GET return all products
@@ -90,7 +102,7 @@ public class ProductController {
 
     // PUT: Update an existing product with validation
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateProduct(@PathVariable Long id, @RequestBody Products updatedProduct) {
+    public ResponseEntity<?> updateProduct(@PathVariable Long id, @RequestBody ProductsUpdateDTO updatedProduct) {
         // Check if the product exists in the database
         Products existingProduct = productsRepository.findById(id).orElse(null);
 
@@ -122,13 +134,71 @@ public class ProductController {
         existingProduct.setDescription(updatedProduct.getDescription());
         existingProduct.setPrice(updatedProduct.getPrice());
 
+        if (updatedProduct.getProductOptions() != null) {
+            Map<Long, ProductOptions> existingProductOptionsMap = existingProduct.getProductOptions().stream()
+                    .collect(Collectors.toMap(ProductOptions::getId, option -> option));
+
+            for (ProductOptionsDTO newOptions : updatedProduct.getProductOptions()) {
+                if (newOptions.getId() == null) {
+                    // Creating a new ProductOption
+                    ProductOptions newProductOption = new ProductOptions();
+                    newProductOption.setProductId(existingProduct);
+
+                    // Setting Size
+                    if (newOptions.getSizeId() != null) {
+                        Sizes size = sizesRepository.findById(newOptions.getSizeId())
+                                .orElseThrow(() -> new IllegalArgumentException(
+                                        "Invalid Size Id: " + newOptions.getSizeId()));
+                        newProductOption.setSize(size);
+                    }
+
+                    // Setting Color
+                    if (newOptions.getColorId() != null) {
+                        Colors color = colorsRepository.findById(newOptions.getColorId())
+                                .orElseThrow(() -> new IllegalArgumentException(
+                                        "Invalid Color Id: " + newOptions.getColorId()));
+                        newProductOption.setColor(color);
+                    }
+                    // Setting stock quantity
+                    newProductOption.setStockQuantity(newOptions.getStockQuantity());
+                    existingProduct.getProductOptions().add(newProductOption);
+
+                } else {
+                    // Updating an existing ProductOption
+                    ProductOptions existingOption = existingProductOptionsMap.get(newOptions.getId());
+
+                    if (existingOption != null) {
+                        // Updating Size
+                        if (newOptions.getSizeId() != null) {
+                            Sizes size = sizesRepository.findById(newOptions.getSizeId())
+                                    .orElseThrow(() -> new IllegalArgumentException(
+                                            "Invalid Size Id: " + newOptions.getSizeId()));
+                            existingOption.setSize(size);
+                        }
+
+                        // Updating Color
+                        if (newOptions.getColorId() != null) {
+                            Colors color = colorsRepository.findById(newOptions.getColorId())
+                                    .orElseThrow(() -> new IllegalArgumentException(
+                                            "Invalid Color Id: " + newOptions.getColorId()));
+                            existingOption.setColor(color);
+                        }
+                        // Updating stock quantity
+                        if (newOptions.getStockQuantity() != null) {
+                            existingOption.setStockQuantity(newOptions.getStockQuantity());
+                        }
+                    } else {
+                        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                .body("Invalid ProductOption Id: " + newOptions.getId());
+                    }
+                }
+            }
+        }
         // Save the updated product
         productsRepository.save(existingProduct);
-
         // Return the updated product with status 200 OK
         return ResponseEntity.ok(existingProduct);
     }
-
     // Global exception handler for validation errors
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
