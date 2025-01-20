@@ -1,6 +1,5 @@
 package com.example.DigitalStore.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 @Entity
@@ -8,13 +7,12 @@ import jakarta.persistence.*;
 public class Colors {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @JsonIgnore
     private Long id;
 
     @Column(name = "color", nullable = false, unique = true)
     private String color;
 
-
+    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -25,7 +23,6 @@ public class Colors {
     public String getColor() {
         return color;
     }
-
     public void setColor(String color) {
         this.color = color;
     }

@@ -4,13 +4,8 @@ import com.example.DigitalStore.DTO.NameAndPrice;
 import com.example.DigitalStore.DTO.ProductOptionsDTO;
 import com.example.DigitalStore.DTO.ProductsDTO;
 import com.example.DigitalStore.DTO.ProductsUpdateDTO;
-import com.example.DigitalStore.model.Colors;
-import com.example.DigitalStore.model.ProductOptions;
-import com.example.DigitalStore.model.Products;
-import com.example.DigitalStore.model.Sizes;
-import com.example.DigitalStore.repository.ProductsRepository;
-import com.example.DigitalStore.repository.ColorsRepository;
-import com.example.DigitalStore.repository.SizesRepository;
+import com.example.DigitalStore.model.*;
+import com.example.DigitalStore.repository.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
@@ -28,11 +23,15 @@ public class ProductController {
     private final ProductsRepository productsRepository;
     private final SizesRepository sizesRepository;
     private final ColorsRepository colorsRepository;
+    private final BrandsRepository brandsRepository;
+    private final CategoriesRepository categoriesRepository;
 
-    public ProductController(ProductsRepository productsRepository, SizesRepository sizesRepository,ColorsRepository colorsRepository) {
+    public ProductController(ProductsRepository productsRepository, SizesRepository sizesRepository,ColorsRepository colorsRepository,BrandsRepository brandsRepository,CategoriesRepository categoriesRepository) {
         this.productsRepository = productsRepository;
         this.sizesRepository = sizesRepository;
         this.colorsRepository = colorsRepository;
+        this.brandsRepository = brandsRepository;
+        this.categoriesRepository = categoriesRepository;
     }
 
     // GET return all products
@@ -111,6 +110,12 @@ public class ProductController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Product not found.");
         }
 
+        // Check for duplicate productCode
+        if (!existingProduct.getProductCode().equals(updatedProduct.getProductCode()) &&
+                productsRepository.existsByProductCode(updatedProduct.getProductCode())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Product code already exists.");
+        }
+
         // Check for validation on the incoming data
         if (updatedProduct.getProductCode() == null || updatedProduct.getProductCode().isBlank()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Product code cannot be null or blank.");
@@ -121,82 +126,96 @@ public class ProductController {
         if (updatedProduct.getProductName() == null || updatedProduct.getProductName().isBlank()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Product name cannot be null or blank.");
         }
-
-        // Check for duplicate productCode
-        if (!existingProduct.getProductCode().equals(updatedProduct.getProductCode()) &&
-                productsRepository.existsByProductCode(updatedProduct.getProductCode())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Product code already exists.");
+        // Validation for brandId
+        if (updatedProduct.getBrandId() == null || updatedProduct.getBrandId() == 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("BrandId must be a valid ID and cannot be 0.");
         }
+        Brands brand = brandsRepository.findById(updatedProduct.getBrandId())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid Brand ID: " + updatedProduct.getBrandId()));
+
+        // Validation for categoryId
+        if (updatedProduct.getCategoryId() == null || updatedProduct.getCategoryId() == 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("CategoryId must be a valid ID and cannot be 0.");
+        }
+        Categories category = categoriesRepository.findById(updatedProduct.getCategoryId())
+                .orElseThrow(() -> new IllegalArgumentException("Invalid Category Id: " +updatedProduct.getCategoryId()));
 
         // Update the product fields
         existingProduct.setProductCode(updatedProduct.getProductCode());
         existingProduct.setProductName(updatedProduct.getProductName());
         existingProduct.setDescription(updatedProduct.getDescription());
         existingProduct.setPrice(updatedProduct.getPrice());
+        existingProduct.setBrandId(brand);
+        existingProduct.setCategoryId(category);
 
+        // Validation and update for productOptions
         if (updatedProduct.getProductOptions() != null) {
             Map<Long, ProductOptions> existingProductOptionsMap = existingProduct.getProductOptions().stream()
                     .collect(Collectors.toMap(ProductOptions::getId, option -> option));
 
-            for (ProductOptionsDTO newOptions : updatedProduct.getProductOptions()) {
-                if (newOptions.getId() == null) {
-                    // Creating a new ProductOption
+            for (ProductOptionsDTO newOption : updatedProduct.getProductOptions()) {
+                if (newOption.getId() == null) {
+                    // New ProductOption
                     ProductOptions newProductOption = new ProductOptions();
                     newProductOption.setProductId(existingProduct);
 
-                    // Setting Size
-                    if (newOptions.getSizeId() != null) {
-                        Sizes size = sizesRepository.findById(newOptions.getSizeId())
-                                .orElseThrow(() -> new IllegalArgumentException(
-                                        "Invalid Size Id: " + newOptions.getSizeId()));
-                        newProductOption.setSize(size);
+                    // Validate sizeId
+                    if (newOption.getSizeId() == null || newOption.getSizeId() == 0) {
+                        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Size Id must be a valid ID and cannot be 0.");
                     }
+                    Sizes size = sizesRepository.findById(newOption.getSizeId())
+                            .orElseThrow(() -> new IllegalArgumentException("Invalid Size ID: " + newOption.getSizeId()));
+                    newProductOption.setSize(size);
 
-                    // Setting Color
-                    if (newOptions.getColorId() != null) {
-                        Colors color = colorsRepository.findById(newOptions.getColorId())
-                                .orElseThrow(() -> new IllegalArgumentException(
-                                        "Invalid Color Id: " + newOptions.getColorId()));
-                        newProductOption.setColor(color);
+                    // Validate colorId
+                    if (newOption.getColorId() == null || newOption.getColorId() == 0) {
+                        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Color Id must be a valid ID and cannot be 0.");
                     }
-                    // Setting stock quantity
-                    newProductOption.setStockQuantity(newOptions.getStockQuantity());
+                    Colors color = colorsRepository.findById(newOption.getColorId())
+                            .orElseThrow(() -> new IllegalArgumentException("Invalid Color ID: " + newOption.getColorId()));
+                    newProductOption.setColor(color);
+
+                    // Validate stockQuantity
+                    if (newOption.getStockQuantity() == null || newOption.getStockQuantity() < 0) {
+                        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                .body("Stock Quantity must be greater than or equal to 0.");
+                    }
+                    newProductOption.setStockQuantity(newOption.getStockQuantity());
+
                     existingProduct.getProductOptions().add(newProductOption);
 
                 } else {
-                    // Updating an existing ProductOption
-                    ProductOptions existingOption = existingProductOptionsMap.get(newOptions.getId());
-
-                    if (existingOption != null) {
-                        // Updating Size
-                        if (newOptions.getSizeId() != null) {
-                            Sizes size = sizesRepository.findById(newOptions.getSizeId())
-                                    .orElseThrow(() -> new IllegalArgumentException(
-                                            "Invalid Size Id: " + newOptions.getSizeId()));
-                            existingOption.setSize(size);
-                        }
-
-                        // Updating Color
-                        if (newOptions.getColorId() != null) {
-                            Colors color = colorsRepository.findById(newOptions.getColorId())
-                                    .orElseThrow(() -> new IllegalArgumentException(
-                                            "Invalid Color Id: " + newOptions.getColorId()));
-                            existingOption.setColor(color);
-                        }
-                        // Updating stock quantity
-                        if (newOptions.getStockQuantity() != null) {
-                            existingOption.setStockQuantity(newOptions.getStockQuantity());
-                        }
-                    } else {
+                    // Update existing ProductOption
+                    ProductOptions existingOption = existingProductOptionsMap.get(newOption.getId());
+                    if (existingOption == null) {
                         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                                .body("Invalid ProductOption Id: " + newOptions.getId());
+                                .body("Invalid ProductOption ID: " + newOption.getId());
+                    }
+
+                    // Update sizeId
+                    if (newOption.getSizeId() != null) {
+                        Sizes size = sizesRepository.findById(newOption.getSizeId())
+                                .orElseThrow(() -> new IllegalArgumentException("Invalid Size ID: " + newOption.getSizeId()));
+                        existingOption.setSize(size);
+                    }
+
+                    // Update colorId
+                    if (newOption.getColorId() != null) {
+                        Colors color = colorsRepository.findById(newOption.getColorId())
+                                .orElseThrow(() -> new IllegalArgumentException("Invalid Color ID: " + newOption.getColorId()));
+                        existingOption.setColor(color);
+                    }
+
+                    // Update stockQuantity
+                    if (newOption.getStockQuantity() != null && newOption.getStockQuantity() >= 0) {
+                        existingOption.setStockQuantity(newOption.getStockQuantity());
                     }
                 }
             }
         }
+
         // Save the updated product
         productsRepository.save(existingProduct);
-        // Return the updated product with status 200 OK
         return ResponseEntity.ok(existingProduct);
     }
     // Global exception handler for validation errors

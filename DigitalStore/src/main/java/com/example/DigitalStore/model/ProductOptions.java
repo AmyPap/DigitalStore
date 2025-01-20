@@ -10,12 +10,12 @@ public class ProductOptions {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @JsonIgnore
     private Long id;
 
     @ManyToOne
     @JoinColumn(name = "product_id", nullable = false)
     @JsonBackReference
+    @JsonIgnore
     private Products productId;
 
     @ManyToOne
@@ -29,29 +29,31 @@ public class ProductOptions {
     @Column(name = "stock_quantity")
     private Integer stockQuantity;
 
-
+    // Getters and Setters
     public Long getId() {
         return id;
     }
     public void setId(Long id) {
         this.id = id;
     }
+
     public Products getProductId() {
         return productId;
     }
     public void setProductId(Products productId) {
         this.productId = productId;
     }
+
     public Sizes getSize() {
         return size;
     }
     public void setSize(Sizes size) {
         this.size = size;
     }
+
     public Colors getColor() {
         return color;
     }
-
     public void setColor(Colors color) {
         this.color = color;
     }
@@ -59,7 +61,6 @@ public class ProductOptions {
     public Integer getStockQuantity() {
         return stockQuantity;
     }
-
     public void setStockQuantity(Integer stockQuantity) {
         this.stockQuantity = stockQuantity;
     }
