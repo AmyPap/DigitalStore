@@ -1,6 +1,5 @@
 package com.example.DigitalStore.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 @Entity
@@ -8,7 +7,6 @@ import jakarta.persistence.*;
 public class Sizes {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @JsonIgnore
     private Long id;
 
     @Column(name = "size", nullable = false, unique = true)
@@ -18,7 +16,6 @@ public class Sizes {
     public Long getId() {
         return id;
     }
-
     public void setId(Long id) {
         this.id = id;
     }
@@ -26,7 +23,6 @@ public class Sizes {
     public String getSize() {
         return size;
     }
-
     public void setSize(String size) {
         this.size = size;
     }
