@@ -1,6 +1,7 @@
 package com.example.DigitalStore.controller;
 
 import com.example.DigitalStore.DTO.NameAndPrice;
+import com.example.DigitalStore.DTO.ProductsDTO;
 import com.example.DigitalStore.model.Products;
 import com.example.DigitalStore.repository.ProductsRepository;
 import org.springframework.web.bind.annotation.*;
@@ -24,11 +25,20 @@ public class ProductController {
 
     // GET return all products
     @GetMapping
-    public List<Products> getAllProducts() {
-        return productsRepository.findAll();
+    public List<ProductsDTO> getAllProducts() {
+        // Fetch all products from the database, map them to ProductsDTO, and return a list
+        return productsRepository.findAll().stream()
+                .map(product -> new ProductsDTO(
+                        product.getId(),
+                        product.getProductCode(),
+                        product.getProductName(),
+                        product.getDescription(),
+                        product.getPrice()
+                ))
+                .toList();
     }
 
-    // GET return productOptions baserat på code
+    // GET return productOptions based on product code
     @GetMapping("/{productCode}")
     public ResponseEntity<?> getOptionsForProduct(@PathVariable String productCode) {
         Products productC = productsRepository.findByProductCode(productCode);
