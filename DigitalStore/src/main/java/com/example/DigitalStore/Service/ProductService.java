@@ -61,17 +61,31 @@ public class ProductService {
     }
 
 
-    public List<Products> filterProducts(Double maxPrice) {
+    public List<ProductsDTO> filterProducts(Double maxPrice) throws NegativePriceException {
         if (maxPrice == null) {
-            return productsRepository.findAll();
+            return productsRepository.findAll().stream()
+                    .map(product -> new ProductsDTO(
+                                    product.getId(),
+                                    product.getProductCode(),
+                                    product.getProductName(),
+                                    product.getDescription(),
+                                    product.getPrice()
+                            )
+                    ).toList();
         }
         if (maxPrice <= 0.0) {
-            throw new IllegalArgumentException("Price can't be zero or lower.");
+            throw new NegativePriceException("Price cannot be zero or lower.");
         }
-
         return productsRepository.findAll().stream()
                 .filter(product -> product.getPrice() <= maxPrice)
-                .toList();
+                .map(product -> new ProductsDTO(
+                                product.getId(),
+                                product.getProductCode(),
+                                product.getProductName(),
+                                product.getDescription(),
+                                product.getPrice()
+                        )
+                ).toList();
     }
 
     public void deleteProduct(Long id) {

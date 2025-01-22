@@ -1,6 +1,7 @@
 package com.example.DigitalStore.controller;
 
 import com.example.DigitalStore.DTO.*;
+import com.example.DigitalStore.Service.NegativePriceException;
 import com.example.DigitalStore.model.Products;
 import com.example.DigitalStore.Service.ProductService;
 import org.springframework.http.HttpStatus;
@@ -32,8 +33,14 @@ public class ProductController {
     }
 
     @GetMapping("/filter")
-    public List<Products> filterProducts(@RequestParam(value = "Max Price", required = false) Double maxPrice) {
-        return productService.filterProducts(maxPrice);
+    public ResponseEntity<?> filterProducts(@RequestParam(value = "Max Price", required = false) Double maxPrice) {
+        try {
+            List<ProductsDTO> filteredProducts = productService.filterProducts(maxPrice);
+            return ResponseEntity.ok(filteredProducts);
+        } catch (NegativePriceException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                    "Error", ex.getMessage()));
+        }
     }
 
     @DeleteMapping("/{id}")
