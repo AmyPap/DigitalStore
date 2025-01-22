@@ -32,8 +32,8 @@ public class ProductController {
         return ResponseEntity.ok(product);
     }
 
-    @GetMapping("/filter")
-    public ResponseEntity<?> filterProducts(@RequestParam(value = "Max Price", required = false) Double maxPrice) {
+    @GetMapping("/filter-by-price")
+    public ResponseEntity<?> filterProductsbyPrice(@RequestParam(value = "Max Price", required = false) Double maxPrice) {
         try {
             List<ProductsDTO> filteredProducts = productService.filterProductsbyPrice(maxPrice);
             return ResponseEntity.ok(filteredProducts);
