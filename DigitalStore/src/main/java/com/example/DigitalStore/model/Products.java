@@ -39,7 +39,6 @@ public class Products {
 
     @OneToMany(mappedBy = "productId", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
-    @JsonIgnore
     private List<ProductOptions> productOptions = new ArrayList<>();
 
     // Getters and Setters
