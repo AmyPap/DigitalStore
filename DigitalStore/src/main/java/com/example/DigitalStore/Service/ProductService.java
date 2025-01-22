@@ -60,7 +60,14 @@ public class ProductService {
                 .toList();
     }
 
-
+    /**
+     * Filters list of products based on a specified maximum price and
+     * Conversion of result to ProductsDTO objects
+     *
+     * @param maxPrice maximum price to filter products by, if null skips filtering
+     * @return A list of ProductsDTO objects below the maximum Price
+     * @throws NegativePriceException if maxPrice is equal to or less than zero
+     */
     public List<ProductsDTO> filterProducts(Double maxPrice) throws NegativePriceException {
         if (maxPrice == null) {
             return productsRepository.findAll().stream()
