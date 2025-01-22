@@ -36,11 +36,6 @@ public class ProductController {
         return productService.filterProducts(maxPrice);
     }
 
-    @GetMapping("/name-price")
-    public List<NameAndPrice> getNameAndPrice() {
-        return productService.getNameAndPrice();
-    }
-
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
         try {

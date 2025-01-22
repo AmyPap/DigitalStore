@@ -74,12 +74,6 @@ public class ProductService {
                 .toList();
     }
 
-    public List<NameAndPrice> getNameAndPrice() {
-        return productsRepository.findAll().stream()
-                .map(product -> new NameAndPrice(product.getProductName(), product.getPrice()))
-                .toList();
-    }
-
     public void deleteProduct(Long id) {
         if (!productsRepository.existsById(id)) {
             throw new IllegalArgumentException("Product not found.");
