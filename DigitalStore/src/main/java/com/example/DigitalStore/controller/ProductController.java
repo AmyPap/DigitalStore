@@ -1,14 +1,14 @@
 package com.example.DigitalStore.controller;
 
-import com.example.DigitalStore.DTO.NameAndPrice;
-import com.example.DigitalStore.DTO.ProductsDTO;
-import com.example.DigitalStore.DTO.ProductsUpdateDTO;
+import com.example.DigitalStore.DTO.*;
 import com.example.DigitalStore.model.Products;
 import com.example.DigitalStore.Service.ProductService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/products")
@@ -26,12 +26,9 @@ public class ProductController {
     }
 
     @GetMapping("/{productCode}")
-    public ResponseEntity<?> getOptionsForProduct(@PathVariable String productCode) {
-        Products product = productService.getProductByCode(productCode);
-        if (product == null) {
-            return ResponseEntity.status(404).body("Product not found.");
-        }
-        return ResponseEntity.ok(product.getProductOptions());
+    public ResponseEntity<List<ProductOptionsGetDTO>> getOptionsForProduct(@PathVariable String productCode) {
+        List<ProductOptionsGetDTO> product = productService.getProductOptions(productCode);
+        return ResponseEntity.ok(product);
     }
 
     @GetMapping("/filter")
@@ -55,12 +52,12 @@ public class ProductController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateProduct(@PathVariable Long id, @RequestBody ProductsUpdateDTO updatedProduct) {
+    public ResponseEntity<?> updateProduct(@PathVariable Long id, @RequestBody(required = false) ProductsUpdateDTO updatedProduct) {
         try {
-            Products updated = productService.updateProduct(id, updatedProduct);
-            return ResponseEntity.ok(updated);
+            Products updatedProductEntity = productService.updateProduct(id, updatedProduct);
+            return ResponseEntity.ok(updatedProductEntity);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(400).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
         }
     }
 
@@ -68,9 +65,9 @@ public class ProductController {
     public ResponseEntity<?> createProduct(@RequestBody ProductsUpdateDTO newProductDTO) {
         try {
             Products createdProduct = productService.createProduct(newProductDTO);
-            return ResponseEntity.status(201).body(createdProduct);
+            return ResponseEntity.status(HttpStatus.CREATED).body(createdProduct);
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(400).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
         }
     }
 }
