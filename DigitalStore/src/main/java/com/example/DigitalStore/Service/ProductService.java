@@ -68,7 +68,7 @@ public class ProductService {
      * @return A list of ProductsDTO objects below the maximum Price
      * @throws NegativePriceException if maxPrice is equal to or less than zero
      */
-    public List<ProductsDTO> filterProducts(Double maxPrice) throws NegativePriceException {
+    public List<ProductsDTO> filterProductsbyPrice(Double maxPrice) throws NegativePriceException {
         if (maxPrice == null) {
             return productsRepository.findAll().stream()
                     .map(product -> new ProductsDTO(

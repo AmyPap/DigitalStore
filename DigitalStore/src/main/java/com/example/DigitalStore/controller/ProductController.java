@@ -35,7 +35,7 @@ public class ProductController {
     @GetMapping("/filter")
     public ResponseEntity<?> filterProducts(@RequestParam(value = "Max Price", required = false) Double maxPrice) {
         try {
-            List<ProductsDTO> filteredProducts = productService.filterProducts(maxPrice);
+            List<ProductsDTO> filteredProducts = productService.filterProductsbyPrice(maxPrice);
             return ResponseEntity.ok(filteredProducts);
         } catch (NegativePriceException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
