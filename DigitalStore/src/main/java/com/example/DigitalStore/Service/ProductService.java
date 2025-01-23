@@ -60,24 +60,39 @@ public class ProductService {
                 .toList();
     }
 
-
-    public List<Products> filterProducts(Double maxPrice) {
+    /**
+     * Filters list of products based on a specified maximum price and
+     * Conversion of result to ProductsDTO objects
+     *
+     * @param maxPrice maximum price to filter products by, if null skips filtering
+     * @return A list of ProductsDTO objects below the maximum Price
+     * @throws NegativePriceException if maxPrice is equal to or less than zero
+     */
+    public List<ProductsDTO> filterProductsbyPrice(Double maxPrice) throws NegativePriceException {
         if (maxPrice == null) {
-            return productsRepository.findAll();
+            return productsRepository.findAll().stream()
+                    .map(product -> new ProductsDTO(
+                                    product.getId(),
+                                    product.getProductCode(),
+                                    product.getProductName(),
+                                    product.getDescription(),
+                                    product.getPrice()
+                            )
+                    ).toList();
         }
         if (maxPrice <= 0.0) {
-            throw new IllegalArgumentException("Price can't be zero or lower.");
+            throw new NegativePriceException("Price cannot be zero or lower.");
         }
-
         return productsRepository.findAll().stream()
                 .filter(product -> product.getPrice() <= maxPrice)
-                .toList();
-    }
-
-    public List<NameAndPrice> getNameAndPrice() {
-        return productsRepository.findAll().stream()
-                .map(product -> new NameAndPrice(product.getProductName(), product.getPrice()))
-                .toList();
+                .map(product -> new ProductsDTO(
+                                product.getId(),
+                                product.getProductCode(),
+                                product.getProductName(),
+                                product.getDescription(),
+                                product.getPrice()
+                        )
+                ).toList();
     }
 
     public void deleteProduct(Long id) {
